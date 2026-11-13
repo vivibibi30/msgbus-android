@@ -1,0 +1,7 @@
+dist/
+build/
+*.apk
+keystore.jks
+*.pass
+__pycache__/
+*.pyc
