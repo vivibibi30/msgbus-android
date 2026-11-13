@@ -133,6 +133,15 @@ public final class SafStore implements Store {
     }
 
     @Override
+    public void deleteMember(String name) throws IOException {
+        String dir = findChild(rootDoc, "members");
+        if (dir == null) return;
+        String safe = name.replace("/", "_").replace("\\", "_").trim();
+        String doc = findChild(dir, safe);
+        if (doc != null) delete(doc);
+    }
+
+    @Override
     public void setCursor(String id) throws IOException {
         if (id == null || id.isEmpty()) return;
         String seen = ensureDir(rootDoc, "seen");

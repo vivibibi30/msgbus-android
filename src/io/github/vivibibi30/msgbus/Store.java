@@ -28,6 +28,9 @@ public interface Store {
     /** 写 members/<名字>（不改历史消息）。 */
     void setMember(String name, String status, String note) throws IOException;
 
+    /** 删掉 members/<名字> 这条名单记录；它发过的消息一条都不动。 */
+    void deleteMember(String name) throws IOException;
+
     /** 本人游标最后一行的 id；空串表示没读过。 */
     String cursor() throws IOException;
 

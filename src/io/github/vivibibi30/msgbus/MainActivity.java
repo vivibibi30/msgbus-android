@@ -973,7 +973,7 @@ public class MainActivity extends Activity {
         }
         lines.add(0, "＋ 添加会话");
         new AlertDialog.Builder(this)
-                .setTitle("成员（点一下切换 active / left）")
+                .setTitle("成员 · 共 " + names.size() + " 条记录（点一下改状态或删除）")
                 .setItems(lines.toArray(new String[0]), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface d, int i) {
@@ -982,11 +982,75 @@ public class MainActivity extends Activity {
                     }
                 })
                 .setNegativeButton("关闭", null)
+                .setNeutralButton("清理所有 left", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int w) {
+                        cleanLeft();
+                    }
+                })
                 .show();
     }
 
+    private void confirmDeleteMember(final String name) {
+        new AlertDialog.Builder(this)
+                .setTitle("删除成员记录？")
+                .setMessage("只删 members/" + name + " 这条名单记录；它发过的消息仍然保留在群里。")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("删除", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int w) {
+                        runOp(new Op() {
+                            @Override
+                            public void run() throws Exception {
+                                store.deleteMember(name);
+                            }
+                        }, new Runnable() {
+                            @Override
+                            public void run() {
+                                load();
+                            }
+                        });
+                    }
+                })
+                .show();
+    }
+
+    private void cleanLeft() {
+        if (store == null) return;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int removed = 0;
+                String err = null;
+                try {
+                    for (String ln : store.members().split("\n")) {
+                        String[] p = ln.trim().split("\\s+");
+                        if (p.length >= 2 && "left".equals(p[1])) {
+                            store.deleteMember(p[0]);
+                            removed++;
+                        }
+                    }
+                } catch (Exception e) {
+                    err = e.getMessage();
+                }
+                final int n = removed;
+                final String e2 = err;
+                ui.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this,
+                                e2 != null ? "清理失败：" + e2 : "已清理 " + n + " 条 left 记录",
+                                Toast.LENGTH_SHORT).show();
+                        load();
+                    }
+                });
+            }
+        }).start();
+    }
+
     private void toggleMember(final String name) {
-        final String[] choices = {"设为 active（回归）", "设为 left（退出）", "复制名字"};
+        final String[] choices = {"设为 active（回归）", "设为 left（退出）", "复制名字",
+                "删除这条记录（不删它发过的消息）"};
         new AlertDialog.Builder(this)
                 .setTitle(name)
                 .setItems(choices, new DialogInterface.OnClickListener() {
@@ -994,6 +1058,10 @@ public class MainActivity extends Activity {
                     public void onClick(DialogInterface d, int i) {
                         if (i == 2) {
                             copy(name);
+                            return;
+                        }
+                        if (i == 3) {
+                            confirmDeleteMember(name);
                             return;
                         }
                         final boolean active = i == 0;

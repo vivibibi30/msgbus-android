@@ -140,6 +140,13 @@ public final class MsgStore implements Store {
     }
 
     @Override
+    public void deleteMember(String name) throws IOException {
+        String safe = safeName(name);
+        if (safe.isEmpty()) throw new IOException("会话名为空");
+        sh("rm -f " + q(dir + "/members/" + safe));
+    }
+
+    @Override
     public String cursor() throws IOException {
         return sh("tail -1 " + q(dir + "/seen/" + ME) + " 2>/dev/null").trim();
     }
