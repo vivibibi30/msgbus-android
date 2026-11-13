@@ -126,8 +126,15 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        PollService.appVisible = true;
         advancedThisRound = false;
         load();
+    }
+
+    @Override
+    protected void onPause() {
+        PollService.appVisible = false;
+        super.onPause();
     }
 
     // ---------- 配色 ----------

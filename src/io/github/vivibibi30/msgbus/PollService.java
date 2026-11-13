@@ -27,7 +27,13 @@ public class PollService extends Service {
 
     private static final int FOREGROUND_ID = 1001;
     private static final int NEW_ID = 1002;
-    private static final long PERIOD = 15000L;
+    // 自适应间隔：App 在前台 15s；后台亮屏 60s；熄屏 5 分钟
+    private static final long FAST = 15000L;
+    private static final long IDLE = 60000L;
+    private static final long SLEEP = 300000L;
+
+    /** 由 MainActivity 的 onResume/onPause 设置（同进程静态量）。 */
+    static volatile boolean appVisible = false;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private volatile boolean running = false;
@@ -48,9 +54,21 @@ public class PollService extends Service {
                     }
                 }
             }).start();
-            ui.postDelayed(this, PERIOD);
+            ui.postDelayed(this, interval());
         }
     };
+
+    private long interval() {
+        if (appVisible) return FAST;
+        boolean screen = true;
+        try {
+            android.os.PowerManager pm =
+                    (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+            screen = pm == null || pm.isInteractive();
+        } catch (Exception ignored) {
+        }
+        return screen ? IDLE : SLEEP;
+    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -131,7 +149,7 @@ public class PollService extends Service {
     private Notification foreground() {
         return new Notification.Builder(this, CH_LOW)
                 .setContentTitle("会话群")
-                .setContentText("正在盯消息目录（每 15 秒）")
+                .setContentText("正在盯消息目录（前台 15s / 后台 60s / 熄屏 5min）")
                 .setSmallIcon(android.R.drawable.stat_notify_chat)
                 .setContentIntent(open())
                 .setOngoing(true)

@@ -56,7 +56,7 @@ public final class MsgStore implements Store {
     @Override
     public List<Msg> read() throws IOException {
         String out = sh("cd " + q(spool()) + " 2>/dev/null || exit 0; "
-                + "for f in *.msg; do echo \"@@@$f\"; cat \"$f\"; done");
+                + "awk 'FNR==1{printf \"@@@%s\\n\", FILENAME} {print}' *.msg 2>/dev/null");
         return MessageParser.parse(out);
     }
 
@@ -156,7 +156,7 @@ public final class MsgStore implements Store {
     @Override
     public List<Msg> readArchived() throws IOException {
         String out = sh("cd " + q(dir + "/archive/group") + " 2>/dev/null || exit 0; "
-                + "for f in *.msg; do echo \"@@@$f\"; cat \"$f\"; done");
+                + "awk 'FNR==1{printf \"@@@%s\\n\", FILENAME} {print}' *.msg 2>/dev/null");
         return MessageParser.parse(out);
     }
 
