@@ -97,7 +97,7 @@ public final class SafStore implements Store {
             if (!f[1].endsWith(".msg")) continue;
             String content = read(f[0]);
             String scope = Store.header(content, "scope");
-            if ("group".equals(scope) || "digest".equals(scope)) kept.add(new String[]{f[0], f[1]});
+            if ("group".equals(scope)) kept.add(new String[]{f[0], f[1]});
         }
         if (kept.isEmpty()) throw new IOException("群里没有需要压缩的群消息");
         Collections.sort(kept, new java.util.Comparator<String[]>() {

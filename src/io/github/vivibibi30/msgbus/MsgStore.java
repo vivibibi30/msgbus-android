@@ -76,12 +76,25 @@ public final class MsgStore implements Store {
 
     @Override
     public void digest(String title, String body) throws IOException {
+        // 与 msg.sh 共用同一把锁：并发压缩会产生两条摘要
+        String lock = dir + "/.digest.lock";
+        if (!sh("mkdir " + q(lock) + " 2>/dev/null && echo OK").contains("OK")) {
+            throw new IOException("另一个会话正在 digest，稍后再试");
+        }
+        try {
+            digestLocked(title, body);
+        } finally {
+            sh("rm -rf " + q(lock));
+        }
+    }
+
+    private void digestLocked(String title, String body) throws IOException {
         List<Msg> all = read();
         StringBuilder ids = new StringBuilder();
         int n = 0;
         String upto = "";
         for (Msg m : all) {
-            if (!"group".equals(m.scope) && !"digest".equals(m.scope)) continue;
+            if (!"group".equals(m.scope)) continue;
             n++;
             upto = m.id();
             ids.append(' ').append(q(m.id()));
