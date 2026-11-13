@@ -229,10 +229,31 @@ public class MainActivity extends Activity {
         subView.setText("");
         subView.setTextColor(SUB);
         subView.setTextSize(11);
+        subView.setSingleLine(true);
+        subView.setEllipsize(android.text.TextUtils.TruncateAt.END);
         subView.setPadding(0, dp(1), 0, 0);
         titles.addView(subView);
         bar.addView(titles, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
+        // 常用操作放顶栏（原来全塞在 ⋮ 里，点两次才到）
+        bar.addView(barButton("生成", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                commandDialog();
+            }
+        }));
+        bar.addView(barButton("添加", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                addSession();
+            }
+        }));
+        bar.addView(barButton("刷新", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                load();
+            }
+        }));
         bar.addView(iconButton("⋮", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -240,6 +261,21 @@ public class MainActivity extends Activity {
             }
         }));
         return bar;
+    }
+
+    /** 顶栏常用按钮：文字比图标更明确，44dp 触区。 */
+    private View barButton(String text, View.OnClickListener l) {
+        TextView tv = new TextView(this);
+        tv.setText(text);
+        tv.setTextColor(SUB);
+        tv.setTextSize(12);
+        tv.setGravity(Gravity.CENTER);
+        tv.setPadding(dp(6), 0, dp(6), 0);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, dp(44));
+        tv.setLayoutParams(lp);
+        tv.setOnClickListener(l);
+        return tv;
     }
 
     private View iconButton(String text, View.OnClickListener l) {
@@ -932,8 +968,9 @@ public class MainActivity extends Activity {
 
     private void menu() {
         final String notifyLabel = prefs.getBoolean("notify_on", false) ? "关闭后台提醒" : "开启后台提醒";
-        final String[] items = {"上手说明", "聊天记录（归档）", notifyLabel, "成员管理", "添加会话",
-                "通知档位", "消息目录", "生成给对方的命令", "写一条示例消息", "清理数据", "刷新"};
+        // 生成 / 添加 / 刷新 已提到顶栏，这里不再重复
+        final String[] items = {"上手说明", "聊天记录（归档）", notifyLabel, "成员管理",
+                "通知档位", "消息目录", "写一条示例消息", "清理数据"};
         new AlertDialog.Builder(this)
                 .setTitle("会话群")
                 .setItems(items, new DialogInterface.OnClickListener() {
@@ -944,12 +981,10 @@ public class MainActivity extends Activity {
                             case 1: archiveDialog(); break;
                             case 2: toggleNotify(); break;
                             case 3: membersDialog(); break;
-                            case 4: addSession(); break;
-                            case 5: notifyLevel(); break;
-                            case 6: dirDialog(); break;
-                            case 7: commandDialog(); break;
-                            case 8: sampleMessage(); break;
-                            case 9: clearDialog(); break;
+                            case 4: notifyLevel(); break;
+                            case 5: dirDialog(); break;
+                            case 6: sampleMessage(); break;
+                            case 7: clearDialog(); break;
                             default: load(); break;
                         }
                     }
