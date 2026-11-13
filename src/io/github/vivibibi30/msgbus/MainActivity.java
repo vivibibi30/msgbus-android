@@ -950,15 +950,17 @@ public class MainActivity extends Activity {
     }
 
     private void dirDialog() {
-        final String[] items = {"选择文件夹（SAF，免 root）", "设置 root 目录", "只用 root 通道",
-                "自动（有 root 用 root）"};
+        final String[] items = {"选择文件夹（SAF，只能到共享存储）", "浏览/设置 root 目录（可到 /）",
+                "只用 root 通道", "自动（有 root 用 root）"};
         new AlertDialog.Builder(this)
                 .setTitle("消息目录 · 当前 " + Stores.describe(prefs))
+                .setMessage("SAF 是系统文件选择器，只能看到「内部存储/Download/SD 卡」这类共享卷，"
+                        + "到不了 /data/local/tmp 或系统根目录；要那些路径请用 root 通道（su）。")
                 .setItems(items, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface d, int i) {
                         if (i == 0) pickTree();
-                        else if (i == 1) rootDirDialog();
+                        else if (i == 1) browseRoot();
                         else {
                             prefs.edit().putString("mode", i == 2 ? "root" : "auto").apply();
                             load();
@@ -966,6 +968,78 @@ public class MainActivity extends Activity {
                     }
                 })
                 .show();
+    }
+
+    /** 用 su 列目录，从 / 一路点进去选；替代手打绝对路径。 */
+    private void browseRoot() {
+        if (!MsgStore.suAvailable()) {
+            Toast.makeText(this, "没有 su，root 通道不可用；只能走 SAF", Toast.LENGTH_LONG).show();
+            return;
+        }
+        showDir(Stores.rootDir(prefs));
+    }
+
+    private void showDir(final String path) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final List<String> dirs = new ArrayList<String>();
+                String err = null;
+                try {
+                    String out = MsgStore.sh("cd " + MsgStore.quote(path) + " 2>/dev/null && "
+                            + "ls -1p 2>/dev/null | grep '/$' | sed 's#/$##' | head -300");
+                    for (String ln : out.split("\n")) {
+                        String d = ln.trim();
+                        if (!d.isEmpty()) dirs.add(d);
+                    }
+                } catch (Exception e) {
+                    err = e.getMessage();
+                }
+                final String e2 = err;
+                ui.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (e2 != null) {
+                            Toast.makeText(MainActivity.this, "列目录失败：" + e2, Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        final boolean hasUp = !"/".equals(path);
+                        final int selIdx = hasUp ? 1 : 0;
+                        List<String> items = new ArrayList<String>();
+                        if (hasUp) items.add("..（上级）");
+                        items.add("✅ 用这个目录");
+                        items.addAll(dirs);
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle(path.isEmpty() ? "/" : path)
+                                .setItems(items.toArray(new String[0]),
+                                        new DialogInterface.OnClickListener() {
+                                            @Override
+                                            public void onClick(DialogInterface d, int i) {
+                                                if (i == selIdx) {
+                                                    prefs.edit().putString("root_dir", path)
+                                                            .putString("mode", "root").apply();
+                                                    store = null;
+                                                    load();
+                                                    Toast.makeText(MainActivity.this,
+                                                            "已设为 " + path, Toast.LENGTH_SHORT).show();
+                                                    return;
+                                                }
+                                                if (hasUp && i == 0) {
+                                                    int idx = path.lastIndexOf('/');
+                                                    showDir(idx <= 0 ? "/" : path.substring(0, idx));
+                                                    return;
+                                                }
+                                                int di = i - selIdx - 1;
+                                                if (di < 0 || di >= dirs.size()) return;
+                                                showDir(("/".equals(path) ? "/" : path + "/") + dirs.get(di));
+                                            }
+                                        })
+                                .setNegativeButton("取消", null)
+                                .show();
+                    }
+                });
+            }
+        }).start();
     }
 
     private void rootDirDialog() {

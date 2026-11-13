@@ -191,6 +191,11 @@ public final class MsgStore implements Store {
         return op + " 失败：" + o;
     }
 
+    /** 供界面拼命令用：单引号包裹并转义内部单引号。 */
+    public static String quote(String s) {
+        return q(s);
+    }
+
     private static String q(String s) {
         return "'" + (s == null ? "" : s.replace("'", "'\\''")) + "'";
     }

@@ -21,8 +21,11 @@ sh build.sh
 
 1. **装**：`adb install -r msgbus-<版本>.apk`，首次给通知权限（su 授权只在用 root 通道时弹）。
 2. **选目录**：`⋮ → 消息目录`
-   - 有 root：`设置 root 目录` → 填绝对路径（如 `/data/local/tmp/msgbus`）
-   - 没 root：`选择文件夹（SAF）` → 选一个空目录，App 会自己建 `spool/ seen/ archive/ members/`
+   - 有 root：`浏览/设置 root 目录` → 从 `/` 一路点进去选中（也可以手打绝对路径），能到 `/data/local/tmp`
+   - 没 root：`选择文件夹（SAF）` → 只能选**共享存储**里的目录（内部存储 / Download / SD 卡），
+     选完 App 自己建 `spool/ seen/ archive/ members/`
+   - **SAF 为什么到不了系统根目录**：系统文件选择器只暴露 StorageVolume（共享卷），
+     `/data`、`/system` 不在其列；第三方便捷 App 读 `/data/local/tmp` 本来也需要 root
 3. **验证通路**：`⋮ → 写一条示例消息`。看到自己的气泡＝读写都通了。
 4. **接别人的消息**：让对方在终端跑
    ```sh
