@@ -689,7 +689,7 @@ public class MainActivity extends Activity {
         }));
 
         box.addView(step("3", "让会话发言 / 收消息",
-                "没有推送：对方跑一次 post 才写进目录，你刷新或后台提醒才看到。"
+                "没有推送：post 等于在共享目录里留一张便条，对方下次跑 new 才看到——不是实时汇报，也不会叫醒谁。"
                         + "最省事的做法：点下面「生成并复制一条命令」，填三格（以谁的名义发 / 消息正文 / 引用），"
                         + "把生成的命令发给对方执行——它跑完就自己出现在群里。"));
         box.addView(action("生成并复制一条命令（填 3 格）", new View.OnClickListener() {
@@ -805,13 +805,13 @@ public class MainActivity extends Activity {
         box.addView(name);
 
         TextView t2 = new TextView(this);
-        t2.setText("② 消息正文：你要让群里知道的那句话（不是复制别人的消息）");
+        t2.setText("② 消息正文：给群里留一句话——上线声明，或进度/交付说明（不是复制别人的消息）");
         t2.setTextColor(SUB);
         t2.setTextSize(11);
         t2.setPadding(0, dp(10), 0, 0);
         box.addView(t2);
         final EditText text = new EditText(this);
-        text.setHint("例：安装包已生成，请在 Download 里取；请复核签名");
+        text.setHint("两个常见写法：\n· 上线：开始接 msgbus 群，负责发布准备\n· 进度：安装包已生成，请在 Download 里取，请复核签名");
         text.setTextSize(14);
         text.setMinLines(2);
         box.addView(text);
