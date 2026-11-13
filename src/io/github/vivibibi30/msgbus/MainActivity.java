@@ -701,17 +701,10 @@ public class MainActivity extends Activity {
         code.setBackground(round(SURFACE_ALT, 8));
         code.setPadding(dp(10), dp(8), dp(10), dp(8));
         box.addView(code);
-        box.addView(action("生成我这条命令（不留占位符）", new View.OnClickListener() {
+        box.addView(action("生成并复制一条命令（填 3 格，不留占位符）", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 commandDialog();
-            }
-        }));
-        box.addView(action("复制上面两条命令（模板）", new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                copy("printf 'refs: <commit或文件>\\n<结论>\\n' | sh msg.sh post yg-<名字>\n"
-                        + "sh msg.sh new yg-<名字>");
             }
         }));
 
@@ -775,51 +768,71 @@ public class MainActivity extends Activity {
     }
 
     /** 把「别人该怎么发」生成成一条能直接粘贴的命令，不留占位符。 */
+    /** 三格填完直接生成并复制，不再「生成 → 再点复制」两步。 */
     private void commandDialog() {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(20), dp(8), dp(20), dp(4));
 
+        TextView t1 = new TextView(this);
+        t1.setText("① 对方的名字（决定消息里的 from:，要和它自己发时一致）");
+        t1.setTextColor(SUB);
+        t1.setTextSize(11);
+        box.addView(t1);
         final EditText name = new EditText(this);
-        name.setHint("会话名，如 yg-文件管理（要和它 post 时写的一致）");
+        name.setHint("如 yg-文件管理");
         name.setText(prefs.getString("my_name", ""));
-        name.setTextSize(13);
+        name.setTextSize(14);
         box.addView(name);
 
-        final EditText refs = new EditText(this);
-        refs.setHint("refs：commit 短 sha 或文件路径；没有就填 -");
-        refs.setTextSize(13);
-        box.addView(refs);
-
+        TextView t2 = new TextView(this);
+        t2.setText("② 一句话结论（这是消息正文，不是粘贴别人的消息）");
+        t2.setTextColor(SUB);
+        t2.setTextSize(11);
+        t2.setPadding(0, dp(10), 0, 0);
+        box.addView(t2);
         final EditText text = new EditText(this);
-        text.setHint("结论：一句话，别贴长文（细节放文件/commit 里）");
-        text.setTextSize(13);
+        text.setHint("如：安装包已生成，路径见 refs");
+        text.setTextSize(14);
         text.setMinLines(2);
         box.addView(text);
 
+        TextView t3 = new TextView(this);
+        t3.setText("③ refs（选填，不常用）：让人能自己去看的东西——commit 短 sha 或文件/下载路径");
+        t3.setTextColor(SUB);
+        t3.setTextSize(11);
+        t3.setPadding(0, dp(10), 0, 0);
+        box.addView(t3);
+        final EditText refs = new EditText(this);
+        refs.setHint("如 936b2e5 或 /sdcard/Download/msgbus-0.12.0.apk；留空写成 -");
+        refs.setTextSize(14);
+        box.addView(refs);
+
         TextView tip = new TextView(this);
-        tip.setText("每一栏对应命令里的一段：会话名决定 from:，refs 进 refs: 字段，结论是正文。"
-                + "填完点生成，再复制那一条命令给对方。");
+        tip.setText("点「生成并复制」后，命令已经在剪贴板里，直接粘给对方执行即可；"
+                + "对方跑完就会自己往群里发一条，不需要你替它说话。");
         tip.setTextColor(SUB);
         tip.setTextSize(11);
-        tip.setPadding(0, dp(8), 0, 0);
+        tip.setLineSpacing(dp(2), 1f);
+        tip.setPadding(0, dp(10), 0, 0);
         box.addView(tip);
 
         new AlertDialog.Builder(this)
-                .setTitle("生成一条可直接粘贴的命令")
+                .setTitle("生成给对方的命令")
                 .setView(box)
                 .setNegativeButton("取消", null)
-                .setPositiveButton("生成", new DialogInterface.OnClickListener() {
+                .setPositiveButton("生成并复制", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface d, int w) {
                         String n = name.getText().toString().trim();
                         String r = refs.getText().toString().trim();
                         String b = text.getText().toString().trim();
                         if (n.isEmpty()) n = "yg-会话名";
-                        if (r.isEmpty()) r = "-";
                         if (b.isEmpty()) b = "（这里写一句话结论）";
                         prefs.edit().putString("my_name", n).apply();
-                        showCommand(buildCommand(n, r, b));
+                        String cmd = buildCommand(n, r, b);
+                        copy(cmd);
+                        showCommand(cmd);
                     }
                 })
                 .show();
@@ -855,15 +868,9 @@ public class MainActivity extends Activity {
         tv.setTextIsSelectable(true);
         sc.addView(tv);
         new AlertDialog.Builder(this)
-                .setTitle("复制这条命令给对方")
+                .setTitle("已复制，粘给对方即可")
                 .setView(sc)
-                .setNegativeButton("关闭", null)
-                .setPositiveButton("复制", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface d, int w) {
-                        copy(cmd);
-                    }
-                })
+                .setPositiveButton("好", null)
                 .show();
     }
 
@@ -890,7 +897,7 @@ public class MainActivity extends Activity {
     private void menu() {
         final String notifyLabel = prefs.getBoolean("notify_on", false) ? "关闭后台提醒" : "开启后台提醒";
         final String[] items = {"上手说明", "聊天记录（归档）", notifyLabel, "成员管理", "添加会话",
-                "通知档位", "消息目录", "生成命令（复制给别人）", "写一条示例消息", "清理数据", "刷新"};
+                "通知档位", "消息目录", "生成给对方的命令", "写一条示例消息", "清理数据", "刷新"};
         new AlertDialog.Builder(this)
                 .setTitle("会话群")
                 .setItems(items, new DialogInterface.OnClickListener() {
