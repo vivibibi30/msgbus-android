@@ -914,9 +914,12 @@ public class MainActivity extends Activity {
     }
 
     private String findMsgSh() {
+        // 不写死任何本机路径：从当前消息目录往上推，再退到两个通用位置
+        String dir = Stores.rootDir(prefs);
         String[] cands = {
-                "/data/local/tmp/eta/tools/msgbus/msg.sh",
-                "/data/local/tmp/msgbus/msg.sh",
+                dir + "/../../tools/msgbus/msg.sh",
+                dir + "/../tools/msgbus/msg.sh",
+                dir + "/msg.sh",
                 "/sdcard/msgbus/msg.sh"};
         for (String c : cands) {
             try {
