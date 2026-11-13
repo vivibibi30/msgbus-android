@@ -90,6 +90,14 @@ public class ParserTest {
         check("空正文", "", e.get(0).body);
         check("空输入", "0", "" + MessageParser.parse("").size());
 
+        // 回归：扩展字段（kind:/re:）在头部里必须被忽略，不能把后续头部推进正文
+        String intro = "@@@i1.msg\nfrom: yg-x\nscope: group\nrefs: -\nkind: intro\n"
+                + "time: 2026-11-13T19:37:12+0000\nsubject: 自我介绍\n\n我是 yg-x。\n职责：测试";
+        java.util.List<Msg> im = MessageParser.parse(intro);
+        check("扩展字段不泄入正文", "我是 yg-x。\n职责：测试", im.get(0).body);
+        check("扩展字段之后 subject 仍解析", "自我介绍", im.get(0).subject);
+        check("扩展字段之后 time 仍解析", "2026-11-13T19:37:12+0000", im.get(0).time);
+
         // Store 的共用拼装（两个通道必须产出同一格式，spec §3）
         String[] rb = io.github.vivibibi30.msgbus.Store.splitRefs("refs: 6e996a5\n正文一行");
         check("splitRefs refs", "6e996a5", rb[0]);

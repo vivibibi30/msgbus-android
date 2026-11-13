@@ -439,7 +439,7 @@ public class MainActivity extends Activity {
                                 @Override
                                 public void run() {
                                     cursor = lastId;
-                                    subView.setText("共 " + msgs.size() + " 条 · 已读");
+                                    load();          // 重绘：未读分隔线跟着消失
                                 }
                             });
                         }
@@ -845,7 +845,6 @@ public class MainActivity extends Activity {
         return tv;
     }
 
-    /** 把「别人该怎么发」生成成一条能直接粘贴的命令，不留占位符。 */
     /** 三格填完直接生成并复制，不再「生成 → 再点复制」两步。 */
     private void commandDialog() {
         ScrollView sc = new ScrollView(this);

@@ -37,17 +37,23 @@ public final class MessageParser {
                     inBody = true;
                     continue;
                 }
+                // 先判断是不是头部行：`key: value`（key 不含空格）。不认识的键也必须忽略，
+                // 否则像 kind:/re: 这种扩展字段会把后续所有头部推进正文（0.16.0 实测出现过）。
+                int colon = ln.indexOf(": ");
+                boolean header = colon > 0 && ln.lastIndexOf(' ', colon) < 0;
+                if (!header) {
+                    inBody = true;
+                    body.append(ln).append('\n');
+                    continue;
+                }
                 if (ln.startsWith("from: ")) from = ln.substring(6).trim();
                 else if (ln.startsWith("time: ")) time = ln.substring(6).trim();
                 else if (ln.startsWith("refs: ")) refs = ln.substring(6).trim();
                 else if (ln.startsWith("subject: ")) subject = ln.substring(9).trim();
                 else if (ln.startsWith("covers: ")) covers = ln.substring(8).trim();
                 else if (ln.startsWith("scope: ")) scope = ln.substring(7).trim();
-                else if (ln.startsWith("to: ") || ln.startsWith("upto: ")) {
-                    // 点对点收件人、作用域、压缩上界：界面不用
-                } else {
-                    inBody = true;
-                    body.append(ln).append('\n');
+                else {
+                    // to:/upto:/kind:/re:/x-* 等：按 SPEC §0.2 忽略，但不算正文开始
                 }
             } else {
                 body.append(ln).append('\n');
