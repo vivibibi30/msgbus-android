@@ -950,12 +950,13 @@ public class MainActivity extends Activity {
     }
 
     private void dirDialog() {
-        final String[] items = {"选择文件夹（SAF，只能到共享存储）", "浏览/设置 root 目录（可到 /）",
+        // 注意：AlertDialog 里 setMessage 与 setItems 同时用会让列表不渲染（实测），
+        // 说明写进标题与条目文案，只用 setItems。
+        final String[] items = {"选文件夹（SAF：内部存储 / Download / SD 卡）",
+                "浏览 / 设置 root 目录（可到 /，需 su）",
                 "只用 root 通道", "自动（有 root 用 root）"};
         new AlertDialog.Builder(this)
                 .setTitle("消息目录 · 当前 " + Stores.describe(prefs))
-                .setMessage("SAF 是系统文件选择器，只能看到「内部存储/Download/SD 卡」这类共享卷，"
-                        + "到不了 /data/local/tmp 或系统根目录；要那些路径请用 root 通道（su）。")
                 .setItems(items, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface d, int i) {
