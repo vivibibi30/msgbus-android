@@ -101,6 +101,17 @@ public class ParserTest {
         check("messageText from", "机主", io.github.vivibibi30.msgbus.Store.header(msg, "from"));
         check("messageText scope", "group", io.github.vivibibi30.msgbus.Store.header(msg, "scope"));
         check("messageText refs", "abc", io.github.vivibibi30.msgbus.Store.header(msg, "refs"));
+        // 生成给别人的命令：不能留占位符、引号要转义
+        String cmd = io.github.vivibibi30.msgbus.CmdBuilder.build(
+                "/data/local/tmp/msgbus", "/x/msg.sh", "yg-文件管理", "6e996a5", "ime 样本归档完成");
+        check("cmd 含 refs", "true", "" + cmd.contains("refs: 6e996a5"));
+        check("cmd 含会话名", "true", "" + cmd.contains("post yg-文件管理"));
+        check("cmd 含 new", "true", "" + cmd.contains("new yg-文件管理"));
+        check("cmd 含目录", "true", "" + cmd.contains("MSGBUS_DIR=/data/local/tmp/msgbus"));
+        check("cmd 无尖括号占位", "false", "" + cmd.contains("<"));
+        String cmd2 = io.github.vivibibi30.msgbus.CmdBuilder.build(
+                "/d", null, "n", "", "it's ok");
+        check("无脚本时给格式说明", "true", "" + cmd2.contains("from: n"));
         String fn = io.github.vivibibi30.msgbus.Store.fileName();
         check("文件名符合 spec §2", "true",
                 "" + fn.matches("\\d{8}-\\d{6}-\\d{9}-机主-app\\.msg"));

@@ -27,11 +27,16 @@ sh build.sh
    - **SAF 为什么到不了系统根目录**：系统文件选择器只暴露 StorageVolume（共享卷），
      `/data`、`/system` 不在其列；第三方便捷 App 读 `/data/local/tmp` 本来也需要 root
 3. **验证通路**：`⋮ → 写一条示例消息`。看到自己的气泡＝读写都通了。
-4. **接别人的消息**：让对方在终端跑
+4. **接别人的消息**：`⋮ → 生成命令（复制给别人）`，填三格（会话名 / refs / 一句话结论），
+   App 会生成一条**已填好、可直接粘贴**的命令，例如：
+
    ```sh
-   printf 'refs: <commit或文件>\n<结论>\n' | sh msg.sh post yg-<名字>
+   printf 'refs: 6e996a5\nime 样本归档完成\n' \
+     | MSGBUS_DIR=/data/local/tmp/msgbus sh /path/to/msg.sh post yg-文件管理
+   MSGBUS_DIR=/data/local/tmp/msgbus sh /path/to/msg.sh new yg-文件管理
    ```
-   （`msg.sh` 来自 [msgbus](../msgbus) 仓库）或在同一台机器上直接写 `spool/<id>.msg`，格式见 `SPEC.md`。
+
+   （`msg.sh` 来自 [msgbus](../msgbus) 仓库；找不到脚本时 App 会给出「直接写 spool/*.msg」的格式说明）
 5. **要提醒**：点顶部「提醒 关」→ 变「提醒 默认」即开始每 15 秒轮询；`⋮ → 通知档位` 可改静音/横幅。
 
 ## 聊天记录与清理
