@@ -748,6 +748,37 @@ public class MainActivity extends Activity {
                 .show();
     }
 
+    /** 表单输入框：圆角底 + 内边距，单行/多行统一外观（默认 EditText 只有一条下划线，很难看出边界）。 */
+    private EditText field(String hint, int lines) {
+        EditText e = new EditText(this);
+        e.setHint(hint);
+        e.setHintTextColor(HINT);
+        e.setTextColor(TEXT);
+        e.setTextSize(14);
+        e.setBackground(round(SURFACE_ALT, 10));
+        e.setPadding(dp(12), dp(10), dp(12), dp(10));
+        if (lines <= 1) {
+            e.setSingleLine(true);
+            e.setMaxLines(1);
+        } else {
+            e.setMinLines(lines);
+            e.setMaxLines(lines + 2);
+            e.setGravity(Gravity.TOP | Gravity.START);
+        }
+        return e;
+    }
+
+    /** 表单小标题：统一 12sp、次要色、和输入框留白一致。 */
+    private TextView label(String text) {
+        TextView t = new TextView(this);
+        t.setText(text);
+        t.setTextColor(SUB);
+        t.setTextSize(12);
+        t.setLineSpacing(dp(2), 1f);
+        t.setPadding(0, dp(12), 0, dp(5));
+        return t;
+    }
+
     private View step(String num, String title, String desc) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -781,64 +812,44 @@ public class MainActivity extends Activity {
     /** 把「别人该怎么发」生成成一条能直接粘贴的命令，不留占位符。 */
     /** 三格填完直接生成并复制，不再「生成 → 再点复制」两步。 */
     private void commandDialog() {
+        ScrollView sc = new ScrollView(this);
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(20), dp(8), dp(20), dp(4));
+        box.setPadding(dp(20), dp(4), dp(20), dp(4));
 
         TextView hdr = new TextView(this);
-        hdr.setText("三格都是你自己填的值，不用粘任何聊天记录。填完点「生成并复制」，命令进剪贴板，发给对方执行即可。");
+        hdr.setText("三格都是你自己填的值，不用粘任何聊天记录。点「生成并复制」后命令进剪贴板。");
         hdr.setTextColor(SUB);
         hdr.setTextSize(11);
         hdr.setLineSpacing(dp(2), 1f);
-        hdr.setPadding(0, dp(2), 0, dp(6));
+        hdr.setPadding(0, dp(4), 0, dp(2));
         box.addView(hdr);
 
-        TextView t1 = new TextView(this);
-        t1.setText("① 以谁的名义发：写进消息的 from:，必须和那个会话自己发时一致");
-        t1.setTextColor(SUB);
-        t1.setTextSize(11);
-        box.addView(t1);
-        final EditText name = new EditText(this);
-        name.setHint("如 yg-文件管理（就是那个会话的名字）");
+        box.addView(label("① 以谁的名义发（消息里的 from:，须与该会话自己发时一致）"));
+        final EditText name = field("如 yg-文件管理", 1);
         name.setText(prefs.getString("my_name", ""));
-        name.setTextSize(14);
         box.addView(name);
 
-        TextView t2 = new TextView(this);
-        t2.setText("② 消息正文：给群里留一句话——上线声明，或进度/交付说明（不是复制别人的消息）");
-        t2.setTextColor(SUB);
-        t2.setTextSize(11);
-        t2.setPadding(0, dp(10), 0, 0);
-        box.addView(t2);
-        final EditText text = new EditText(this);
-        text.setHint("两个常见写法：\n· 上线：开始接 msgbus 群，负责发布准备\n· 进度：安装包已生成，请在 Download 里取，请复核签名");
-        text.setTextSize(14);
-        text.setMinLines(2);
+        box.addView(label("② 消息正文（给群里留的一句话，不是复制别人的消息）"));
+        final EditText text = field("例：开始接 msgbus 群，负责发布准备", 3);
         box.addView(text);
 
-        TextView t3 = new TextView(this);
-        t3.setText("③ 引用（选填）：让人能自己去看的地址或提交号");
-        t3.setTextColor(SUB);
-        t3.setTextSize(11);
-        t3.setPadding(0, dp(10), 0, 0);
-        box.addView(t3);
-        final EditText refs = new EditText(this);
-        refs.setHint("例：088fcd29 或 /sdcard/Download/msgbus-0.14.0.apk；留空则不写");
-        refs.setTextSize(14);
+        box.addView(label("③ 引用（选填）：能让人自己去看的提交号或文件路径"));
+        final EditText refs = field("例：088fcd29 或 /sdcard/Download/x.apk；留空则不写", 1);
         box.addView(refs);
 
         TextView tip = new TextView(this);
-        tip.setText("点「生成并复制」后，命令已经在剪贴板里，直接粘给对方执行即可；"
-                + "对方跑完就会自己往群里发一条，不需要你替它说话。");
+        tip.setText("发给对方执行即可；它跑完会自己往群里发一条，不需要你替它说话。");
         tip.setTextColor(SUB);
         tip.setTextSize(11);
         tip.setLineSpacing(dp(2), 1f);
-        tip.setPadding(0, dp(10), 0, 0);
+        tip.setPadding(0, dp(12), 0, dp(2));
         box.addView(tip);
 
-        new AlertDialog.Builder(this)
+        sc.addView(box);
+        AlertDialog dlg = new AlertDialog.Builder(this)
                 .setTitle("生成给对方的命令")
-                .setView(box)
+                .setView(sc)
                 .setNegativeButton("取消", null)
                 .setPositiveButton("生成并复制", new DialogInterface.OnClickListener() {
                     @Override
@@ -847,14 +858,20 @@ public class MainActivity extends Activity {
                         String r = refs.getText().toString().trim();
                         String b = text.getText().toString().trim();
                         if (n.isEmpty()) n = "yg-会话名";
-                        if (b.isEmpty()) b = "（这里写一句话结论）";
+                        if (b.isEmpty()) b = "（这里写一句话）";
                         prefs.edit().putString("my_name", n).apply();
                         String cmd = buildCommand(n, r, b);
                         copy(cmd);
                         showCommand(cmd);
                     }
                 })
-                .show();
+                .create();
+        dlg.show();
+        if (dlg.getWindow() != null) {
+            // 键盘弹出时压缩对话框，别把输入框顶出屏幕
+            dlg.getWindow().setSoftInputMode(
+                    android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        }
     }
 
     private String buildCommand(String name, String refs, String body) {
@@ -1084,9 +1101,7 @@ public class MainActivity extends Activity {
     }
 
     private void addSession() {
-        final EditText et = new EditText(this);
-        et.setHint("会话名，如 yg-新项目");
-        et.setTextSize(14);
+        final EditText et = field("会话名，如 yg-新项目", 1);
         new AlertDialog.Builder(this)
                 .setTitle("添加会话到群")
                 .setMessage("写 members/<名字> 并在群里发【入群】公告；不删任何历史消息。")
@@ -1245,11 +1260,8 @@ public class MainActivity extends Activity {
     }
 
     private void rootDirDialog() {
-        final EditText et = new EditText(this);
+        final EditText et = field("绝对路径，如 /data/local/tmp/msgbus", 1);
         et.setText(Stores.rootDir(prefs));
-        et.setHint("绝对路径，如 /data/local/tmp/msgbus");
-        et.setTextSize(13);
-        et.setSingleLine(true);
         new AlertDialog.Builder(this)
                 .setTitle("root 通道的消息目录")
                 .setMessage("需要 su；App 直接读写该目录下的 spool/ seen/ archive/ members/。")
@@ -1468,10 +1480,7 @@ public class MainActivity extends Activity {
     }
 
     private void digestDialog() {
-        final EditText et = new EditText(this);
-        et.setHint("第 1 行标题，其余是摘要正文（可先写 refs: …）");
-        et.setMinLines(4);
-        et.setTextSize(14);
+        final EditText et = field("第 1 行标题，其余是摘要正文（可先写 refs: …）", 4);
         new AlertDialog.Builder(this)
                 .setTitle("把现有群消息压成一条摘要")
                 .setView(et)
