@@ -667,8 +667,9 @@ public class MainActivity extends Activity {
         box.setPadding(dp(20), dp(16), dp(20), dp(8));
 
         box.addView(step("1", "选消息目录",
-                "这个 App 只是「看和发」一个目录里的消息文件。有 root：用 su 直接读写你指定的绝对路径；"
-                        + "没有 root：点下面选一个文件夹（如 Download/msgbus），App 会记住授权。两者写出的格式相同。"));
+                "这个 App 只干一件事：读写一个目录里的消息文件。"
+                        + "有 root：用 su 读写你指定的绝对路径；没有 root：点下面选一个文件夹（如 Download/msgbus）。"
+                        + "两种方式写出的格式完全一样，换通道不丢消息。"));
         box.addView(action("选择文件夹（SAF）", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -677,9 +678,9 @@ public class MainActivity extends Activity {
         }));
 
         box.addView(step("2", "给会话起名字",
-                "群里的「会话」就是消息里的 from: 名字，由发送方自己填。"
-                        + "建议和你在用的会话同名并带前缀，例如 yg-文件管理。"
-                        + "添加后会在群里发一条【入群】公告，并在 members/ 里登记。"));
+                "群里的「会话」= 消息头部 from: 那个字符串，由发送方自己填，不是账号也不受验证。"
+                        + "名字要和你在命令里写给它的完全一致（大小写、前缀都算），否则群里会当成两个人。"
+                        + "建议带前缀，如 yg-文件管理。添加后会在 members/ 里登记并发一条【入群】公告。"));
         box.addView(action("添加会话", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -688,25 +689,35 @@ public class MainActivity extends Activity {
         }));
 
         box.addView(step("3", "让会话发言 / 收消息",
-                "没有推送：对方跑一次 post 才写进目录，你这边刷新或后台提醒才看到。"
-                        + "对方（或任何程序）只要往 spool/ 写一个 .msg 文件即可，格式见 msgbus 仓库的 SPEC.md。"
-                        + "有工作区的机器可以一行命令："));
-        TextView code = new TextView(this);
-        code.setText("printf 'refs: <commit或文件>\\n<结论>\\n' \\\n"
-                + "  | sh msg.sh post yg-<名字>\n"
-                + "sh msg.sh new yg-<名字>");
-        code.setTextColor(TEXT);
-        code.setTextSize(11);
-        code.setTypeface(Typeface.MONOSPACE);
-        code.setBackground(round(SURFACE_ALT, 8));
-        code.setPadding(dp(10), dp(8), dp(10), dp(8));
-        box.addView(code);
-        box.addView(action("生成并复制一条命令（填 3 格，不留占位符）", new View.OnClickListener() {
+                "没有推送：对方跑一次 post 才写进目录，你刷新或后台提醒才看到。"
+                        + "做法任选其一：① 点下面「生成并复制一条命令」发给对方（推荐，命令已填好）；"
+                        + "② 对方机器上有 msg.sh 就让它自己跑；③ 任何程序往 spool/ 写一个 .msg（格式见 SPEC.md）。"));
+        box.addView(action("生成并复制一条命令（填 3 格）", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 commandDialog();
             }
         }));
+
+        // 把 refs 讲清楚：它是「让人自己去看」的指针，不是消息编号，也不是聊天内容
+        TextView refsTitle = new TextView(this);
+        refsTitle.setText("refs 填什么（选填，留空就写 -）");
+        refsTitle.setTextColor(TEXT);
+        refsTitle.setTextSize(13);
+        refsTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        refsTitle.setPadding(0, dp(16), 0, dp(4));
+        box.addView(refsTitle);
+
+        TextView refsBody = new TextView(this);
+        refsBody.setText("· commit 短 sha：088fcd29\n"
+                + "· 文件 / 下载路径：/sdcard/Download/msgbus-0.13.0.apk\n"
+                + "· 仓库相对路径：projects/ime/README.md\n"
+                + "· 没有可指的：留空（App 会写成 -）\n\n"
+                + "refs 是「想让我自己去看，就看这个」，不是消息编号，也不要粘贴聊天内容。");
+        refsBody.setTextColor(SUB);
+        refsBody.setTextSize(12);
+        refsBody.setLineSpacing(dp(2), 1f);
+        box.addView(refsBody);
 
         TextView note = new TextView(this);
         note.setText("说明：消息就是一个目录里的文本文件（spool / seen / archive / members 四个子目录），"
@@ -774,6 +785,14 @@ public class MainActivity extends Activity {
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(20), dp(8), dp(20), dp(4));
 
+        TextView hdr = new TextView(this);
+        hdr.setText("三格是三个值，不用粘聊天记录；填完点「生成并复制」，命令进剪贴板，发给对方执行即可。");
+        hdr.setTextColor(SUB);
+        hdr.setTextSize(11);
+        hdr.setLineSpacing(dp(2), 1f);
+        hdr.setPadding(0, dp(2), 0, dp(6));
+        box.addView(hdr);
+
         TextView t1 = new TextView(this);
         t1.setText("① 对方的名字（决定消息里的 from:，要和它自己发时一致）");
         t1.setTextColor(SUB);
@@ -804,7 +823,7 @@ public class MainActivity extends Activity {
         t3.setPadding(0, dp(10), 0, 0);
         box.addView(t3);
         final EditText refs = new EditText(this);
-        refs.setHint("如 936b2e5 或 /sdcard/Download/msgbus-0.12.0.apk；留空写成 -");
+        refs.setHint("如 088fcd29 或 /sdcard/Download/msgbus-0.13.0.apk；留空写成 -");
         refs.setTextSize(14);
         box.addView(refs);
 
