@@ -140,6 +140,25 @@ public final class MsgStore implements Store {
                 + "' >> " + q(dir + "/seen/" + ME) + " ; }");
     }
 
+    @Override
+    public List<Msg> readArchived() throws IOException {
+        String out = sh("cd " + q(dir + "/archive/group") + " 2>/dev/null || exit 0; "
+                + "for f in *.msg; do echo \"@@@$f\"; cat \"$f\"; done");
+        return MessageParser.parse(out);
+    }
+
+    @Override
+    public void delete(String id, boolean archived) throws IOException {
+        String base = archived ? dir + "/archive/group" : spool();
+        sh("rm -f " + q(base + "/" + safeName(id) + ".msg"));
+    }
+
+    @Override
+    public void clear(boolean spool, boolean archive) throws IOException {
+        if (spool) sh("rm -f " + q(spool()) + "/*.msg");
+        if (archive) sh("rm -f " + q(dir + "/archive/group") + "/*.msg");
+    }
+
     // ---------- 内部 ----------
 
     private static String stripSlash(String p) {

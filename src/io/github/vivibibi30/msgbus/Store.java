@@ -36,6 +36,15 @@ public interface Store {
     /** 显示用：`root · <目录>` / `SAF · content://…` */
     String mode();
 
+    /** 被 digest 压缩掉、移到 archive/group 的原文。 */
+    List<Msg> readArchived() throws IOException;
+
+    /** 删一条消息（archived=true 表示从归档里删）。 */
+    void delete(String id, boolean archived) throws IOException;
+
+    /** 清空消息 / 归档，目录本身保留。 */
+    void clear(boolean spool, boolean archive) throws IOException;
+
     // ---------- 两个实现共用的消息文本拼装 ----------
 
     String ISO = "yyyy-MM-dd'T'HH:mm:ssZ";

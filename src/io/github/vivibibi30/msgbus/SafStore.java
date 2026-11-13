@@ -144,6 +144,50 @@ public final class SafStore implements Store {
         else createIn(seen, ME, text);
     }
 
+    @Override
+    public List<Msg> readArchived() throws IOException {
+        String arch = findChild(rootDoc, "archive");
+        if (arch == null) return new ArrayList<Msg>();
+        String group = findChild(arch, "group");
+        if (group == null) return new ArrayList<Msg>();
+        StringBuilder sb = new StringBuilder();
+        for (String[] f : children(group)) {
+            if (!f[1].endsWith(".msg")) continue;
+            sb.append("@@@").append(f[1]).append('\n').append(read(f[0])).append('\n');
+        }
+        return MessageParser.parse(sb.toString());
+    }
+
+    @Override
+    public void delete(String id, boolean archived) throws IOException {
+        String dir;
+        if (archived) {
+            String a = findChild(rootDoc, "archive");
+            if (a == null) return;
+            dir = findChild(a, "group");
+            if (dir == null) return;
+        } else {
+            dir = findChild(rootDoc, "spool");
+            if (dir == null) return;
+        }
+        String name = id.endsWith(".msg") ? id : id + ".msg";
+        String doc = findChild(dir, name);
+        if (doc != null) delete(doc);
+    }
+
+    @Override
+    public void clear(boolean spool, boolean archive) throws IOException {
+        if (spool) {
+            String d = findChild(rootDoc, "spool");
+            if (d != null) for (String[] f : children(d)) if (f[1].endsWith(".msg")) delete(f[0]);
+        }
+        if (archive) {
+            String a = findChild(rootDoc, "archive");
+            String d = a == null ? null : findChild(a, "group");
+            if (d != null) for (String[] f : children(d)) if (f[1].endsWith(".msg")) delete(f[0]);
+        }
+    }
+
     // ---------- DocumentsContract 辅助 ----------
 
     private Uri docUri(String docId) {

@@ -782,8 +782,9 @@ public class MainActivity extends Activity {
     // ---------- 菜单 ----------
 
     private void menu() {
-        final String[] items = {"上手说明", "成员管理", "添加会话", "通知档位",
-                "消息目录", "写一条示例消息", "刷新"};
+        final String notifyLabel = prefs.getBoolean("notify_on", false) ? "关闭后台提醒" : "开启后台提醒";
+        final String[] items = {"上手说明", "聊天记录（归档）", notifyLabel, "成员管理", "添加会话",
+                "通知档位", "消息目录", "写一条示例消息", "清理数据", "刷新"};
         new AlertDialog.Builder(this)
                 .setTitle("会话群")
                 .setItems(items, new DialogInterface.OnClickListener() {
@@ -791,11 +792,14 @@ public class MainActivity extends Activity {
                     public void onClick(DialogInterface d, int i) {
                         switch (i) {
                             case 0: onboarding(); break;
-                            case 1: membersDialog(); break;
-                            case 2: addSession(); break;
-                            case 3: notifyLevel(); break;
-                            case 4: dirDialog(); break;
-                            case 5: sampleMessage(); break;
+                            case 1: archiveDialog(); break;
+                            case 2: toggleNotify(); break;
+                            case 3: membersDialog(); break;
+                            case 4: addSession(); break;
+                            case 5: notifyLevel(); break;
+                            case 6: dirDialog(); break;
+                            case 7: sampleMessage(); break;
+                            case 8: clearDialog(); break;
                             default: load(); break;
                         }
                     }
@@ -910,6 +914,23 @@ public class MainActivity extends Activity {
                 .show();
     }
 
+    private void toggleNotify() {
+        boolean on = !prefs.getBoolean("notify_on", false);
+        prefs.edit().putBoolean("notify_on", on).apply();
+        Intent i = new Intent(this, PollService.class);
+        if (on) {
+            i.setAction("start");
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(i);
+            else startService(i);
+        } else {
+            i.setAction("stop");
+            startService(i);
+            stopService(i);
+        }
+        Toast.makeText(this, on ? "已开启后台提醒（每 15 秒）" : "已关闭后台提醒",
+                Toast.LENGTH_SHORT).show();
+    }
+
     private void notifyLevel() {
         final String[] labels = {"静音（只在通知栏）", "默认（响一下）", "横幅（响 + 弹出）"};
         String cur = prefs.getString("notify_level", "def");
@@ -999,6 +1020,141 @@ public class MainActivity extends Activity {
         Toast.makeText(this, "已切到 SAF 通道", Toast.LENGTH_SHORT).show();
     }
 
+    // ---------- 聊天记录（归档）与清理 ----------
+
+    private void archiveDialog() {
+        if (store == null) {
+            Toast.makeText(this, "还没有存储通道", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String text;
+                try {
+                    List<Msg> old = store.readArchived();
+                    if (old.isEmpty()) {
+                        text = "（没有归档记录）\\n\\n用「压缩成摘要」后，被压掉的原文会移到 archive/group/，在这里能翻回去。";
+                    } else {
+                        StringBuilder sb = new StringBuilder();
+                        for (int i = 0; i < old.size(); i++) {
+                            Msg m = old.get(i);
+                            sb.append(i + 1).append(". ").append(m.time.length() >= 16
+                                    ? m.time.substring(0, 16).replace('T', ' ') : m.time)
+                              .append("  ").append(m.from).append("\n")
+                              .append(m.body).append("\\n\\n");
+                        }
+                        text = "共 " + old.size() + " 条（archive/group）\\n\\n" + sb;
+                    }
+                } catch (Exception e) {
+                    text = "读失败：" + e.getMessage();
+                }
+                final String t = text;
+                ui.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("聊天记录")
+                                .setMessage(t)
+                                .setPositiveButton("好", null)
+                                .setNeutralButton("清空归档", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface d, int w) {
+                                        confirmClear(true, false);
+                                    }
+                                })
+                                .show();
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private void confirmDelete(final Msg m) {
+        new AlertDialog.Builder(this)
+                .setTitle("删除这条消息？")
+                .setMessage(m.from + " · " + m.firstLine() + "\\n\\n只删这个文件，不能撤销。")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("删除", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int w) {
+                        runOp(new Op() {
+                            @Override
+                            public void run() throws Exception {
+                                store.delete(m.id(), false);
+                            }
+                        }, new Runnable() {
+                            @Override
+                            public void run() {
+                                load();
+                            }
+                        });
+                    }
+                })
+                .show();
+    }
+
+    private void clearDialog() {
+        final String[] items = {"清空消息（spool）", "清空归档（archive/group）", "两者都清",
+                "重置本地设置（游标/通知/目录）"};
+        new AlertDialog.Builder(this)
+                .setTitle("清理数据")
+                .setItems(items, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int i) {
+                        if (i == 0) confirmClear(true, false);
+                        else if (i == 1) confirmClear(false, true);
+                        else if (i == 2) confirmClear(true, true);
+                        else resetLocal();
+                    }
+                })
+                .show();
+    }
+
+    private void confirmClear(final boolean spool, final boolean archive) {
+        String what = spool && archive ? "消息和归档" : (spool ? "消息" : "归档");
+        new AlertDialog.Builder(this)
+                .setTitle("清空" + what + "？")
+                .setMessage("会删除目录里的 .msg 文件，不能撤销；seed/members 与其它会话的记录也会一起消失。")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("确认清空", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int w) {
+                        runOp(new Op() {
+                            @Override
+                            public void run() throws Exception {
+                                store.clear(spool, archive);
+                            }
+                        }, new Runnable() {
+                            @Override
+                            public void run() {
+                                load();
+                                Toast.makeText(MainActivity.this, "已清空", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+                })
+                .show();
+    }
+
+    private void resetLocal() {
+        new AlertDialog.Builder(this)
+                .setTitle("重置本地设置？")
+                .setMessage("清掉 App 的目录配置、已读游标、通知去重与开关；不删任何消息文件。")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("重置", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int w) {
+                        prefs.edit().clear().apply();
+                        cursor = "";
+                        store = null;
+                        load();
+                        Toast.makeText(MainActivity.this, "已重置", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .show();
+    }
+
     // ---------- 消息长按 ----------
 
     private void messageActions(final Msg m) {
@@ -1007,6 +1163,7 @@ public class MainActivity extends Activity {
         if (!m.refs.isEmpty() && !m.refs.equals("-")) labels.add("复制 refs");
         labels.add("标记此处已读");
         labels.add("压缩成摘要（digest）");
+        labels.add("删除这条消息");
         new AlertDialog.Builder(this)
                 .setTitle(m.from + " · " + m.firstLine())
                 .setItems(labels.toArray(new String[0]), new DialogInterface.OnClickListener() {
@@ -1016,6 +1173,7 @@ public class MainActivity extends Activity {
                         if (label.equals("复制正文")) copy(m.body);
                         else if (label.equals("复制 refs")) copy(m.refs);
                         else if (label.equals("标记此处已读")) markRead(m);
+                        else if (label.equals("删除这条消息")) confirmDelete(m);
                         else digestDialog();
                     }
                 })
