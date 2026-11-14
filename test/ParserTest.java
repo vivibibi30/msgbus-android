@@ -127,6 +127,11 @@ public class ParserTest {
         String cmd2 = io.github.vivibibi30.msgbus.CmdBuilder.build(
                 "/d", null, "n", "", "it's ok");
         check("无脚本时给格式说明", "true", "" + cmd2.contains("from: n"));
+        String withAtt = io.github.vivibibi30.msgbus.Store.messageText("abc", "看图", "/sdcard/a.png,/sdcard/b.png");
+        check("messageText 带 attachments", "/sdcard/a.png,/sdcard/b.png",
+                io.github.vivibibi30.msgbus.Store.header(withAtt, "attachments"));
+        check("无附件时不写该字段", "", io.github.vivibibi30.msgbus.Store.header(
+                io.github.vivibibi30.msgbus.Store.messageText("abc", "看图"), "attachments"));
         String fn = io.github.vivibibi30.msgbus.Store.fileName();
         check("文件名符合 spec §2", "true",
                 "" + fn.matches("\\d{8}-\\d{6}-\\d{9}-机主-app\\.msg"));

@@ -81,11 +81,11 @@ public final class SafStore implements Store {
     // ---------- 写 ----------
 
     @Override
-    public void post(String text) throws IOException {
+    public void post(String text, String attachments) throws IOException {
         String[] rb = Store.splitRefs(text);
         if (rb[1].isEmpty()) throw new IOException("refs 之外没有正文");
         String spool = ensureDir(rootDoc, "spool");
-        createIn(spool, Store.fileName(), Store.messageText(rb[0], rb[1]));
+        createIn(spool, Store.fileName(), Store.messageText(rb[0], rb[1], attachments));
         setMember(ME, "active", "-");
     }
 

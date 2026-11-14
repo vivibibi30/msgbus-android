@@ -16,8 +16,8 @@ public interface Store {
 
     List<Msg> read() throws IOException;
 
-    /** 发群消息；首行 `refs: …` 由实现解析。 */
-    void post(String text) throws IOException;
+    /** 发群消息；首行 `refs: …` 由实现解析；attachments 逗号分隔路径，可空。 */
+    void post(String text, String attachments) throws IOException;
 
     /** 把 spool 里现有群消息压成一条摘要（spec §4）。 */
     void digest(String title, String body) throws IOException;
@@ -81,7 +81,13 @@ public interface Store {
     }
 
     static String messageText(String refs, String body) {
+        return messageText(refs, body, "");
+    }
+
+    static String messageText(String refs, String body, String attachments) {
+        String att = attachments == null ? "" : attachments.trim();
         return "from: " + ME + "\nscope: group\nrefs: " + refs
+                + (att.isEmpty() ? "" : "\nattachments: " + att)
                 + "\ntime: " + isoNow() + "\n\n" + body + "\n";
     }
 

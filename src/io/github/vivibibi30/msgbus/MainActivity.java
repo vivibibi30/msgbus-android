@@ -44,6 +44,7 @@ public class MainActivity extends Activity {
 
     private static final int REQ_NOTIFY = 1;
     private static final int REQ_TREE = 2;
+    private static final int REQ_FILE = 3;
 
     private static final int[] AVATARS = {
             0xFF3D5AFE, 0xFF00897B, 0xFFEF6C00, 0xFF8E24AA,
@@ -62,6 +63,7 @@ public class MainActivity extends Activity {
     private volatile boolean busy = false;
     private volatile boolean advancedThisRound = false;
     private volatile String cursor = "";
+    private String pendingAttach = "";
     private int maxBubble;
 
     // 由 palette() 按亮/暗模式赋值
@@ -299,6 +301,20 @@ public class MainActivity extends Activity {
         bar.setGravity(Gravity.BOTTOM);
         bar.setBackgroundColor(SURFACE);
         bar.setPadding(dp(10), dp(8), dp(10), dp(8));
+
+        TextView clip = new TextView(this);
+        clip.setText("📎");
+        clip.setTextSize(18);
+        clip.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(dp(36), dp(42));
+        clip.setLayoutParams(clp);
+        clip.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                attachDialog();
+            }
+        });
+        bar.addView(clip);
 
         input = new EditText(this);
         input.setHint("发消息…（首行 refs: 可挂引用）");
@@ -971,7 +987,7 @@ public class MainActivity extends Activity {
             public void run() throws Exception {
                 if (store == null) store = Stores.get(MainActivity.this, prefs);
                 if (store == null) throw new IllegalStateException("先选消息目录");
-                store.post("refs: -\n示例消息：这条由 App 写入，用来确认读写通路正常。");
+                store.post("refs: -\n示例消息：这条由 App 写入，用来确认读写通路正常。", "");
             }
         }, new Runnable() {
             @Override
@@ -1146,7 +1162,7 @@ public class MainActivity extends Activity {
                             public void run() throws Exception {
                                 store.setMember(name, active ? "active" : "left",
                                         active ? "app 恢复" : "app 标记退出");
-                                store.post("refs: -\n【" + (active ? "回归" : "退出") + "】" + name);
+                                store.post("refs: -\n【" + (active ? "回归" : "退出") + "】" + name, "");
                             }
                         }, new Runnable() {
                             @Override
@@ -1176,7 +1192,7 @@ public class MainActivity extends Activity {
                             public void run() throws Exception {
                                 store.setMember(name, "active", "app 添加");
                                 store.post("refs: -\n【入群】" + name
-                                        + "\n（机主在 App 里添加，等它自己 post 第一条）");
+                                        + "\n（机主在 App 里添加，等它自己 post 第一条）", "");
                             }
                         }, new Runnable() {
                             @Override
@@ -1339,6 +1355,64 @@ public class MainActivity extends Activity {
                 .show();
     }
 
+    /** 给这条消息挂附件：填路径，或用系统选择器选一个文件。 */
+    private void attachDialog() {
+        final EditText et = field("绝对路径或 content://，多个用逗号分隔", 2);
+        et.setText(pendingAttach);
+        new AlertDialog.Builder(this)
+                .setTitle("这条消息的附件")
+                .setMessage("图片/文件仍在原位置，消息里只存路径；对方用这个路径去读。")
+                .setView(et)
+                .setNeutralButton("选择文件…", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int w) {
+                        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                        i.addCategory(Intent.CATEGORY_OPENABLE);
+                        i.setType("*/*");
+                        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        try {
+                            startActivityForResult(i, REQ_FILE);
+                        } catch (Exception e) {
+                            Toast.makeText(MainActivity.this, "没有文件选择器：" + e, Toast.LENGTH_LONG).show();
+                        }
+                    }
+                })
+                .setNegativeButton("清空", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int w) {
+                        pendingAttach = "";
+                        input.setHint("发消息…（首行 refs: 可挂引用）");
+                    }
+                })
+                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int w) {
+                        pendingAttach = et.getText().toString().trim();
+                        input.setHint(pendingAttach.isEmpty()
+                                ? "发消息…（首行 refs: 可挂引用）"
+                                : "📎 已附 " + pendingAttach.split(",").length + " 个附件（点 📎 修改）");
+                    }
+                })
+                .show();
+    }
+
+    /** content:// → 绝对路径；做不到就原样保留 URI（对方能读 URI 才用得上）。 */
+    private String uriToPath(Uri u) {
+        try {
+            if ("content".equals(u.getScheme())
+                    && "com.android.externalstorage.documents".equals(u.getAuthority())) {
+                String docId = android.provider.DocumentsContract.getDocumentId(u);
+                String[] parts = docId.split(":", 2);
+                if (parts.length == 2) {
+                    String root = "primary".equals(parts[0]) ? "/sdcard/" : "/storage/" + parts[0] + "/";
+                    return root + parts[1];
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return u.toString();
+    }
+
     private void pickTree() {
         Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
         i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
@@ -1354,6 +1428,15 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if (req == REQ_FILE) {
+            if (res == RESULT_OK && data != null && data.getData() != null) {
+                String path = uriToPath(data.getData());
+                pendingAttach = pendingAttach.isEmpty() ? path : pendingAttach + "," + path;
+                input.setHint("📎 已附 " + pendingAttach.split(",").length + " 个附件（点 📎 修改）");
+                Toast.makeText(this, "已添加：" + path, Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
         if (req != REQ_TREE || res != RESULT_OK || data == null || data.getData() == null) return;
         Uri u = data.getData();
         try {
@@ -1583,12 +1666,14 @@ public class MainActivity extends Activity {
             @Override
             public void run() throws Exception {
                 if (store == null) throw new IllegalStateException("还没有存储通道");
-                store.post(text);
+                store.post(text, pendingAttach);
             }
         }, new Runnable() {
             @Override
             public void run() {
                 input.setText("");
+                pendingAttach = "";
+                input.setHint("发消息…（首行 refs: 可挂引用）");
                 advancedThisRound = true;
                 load();
             }

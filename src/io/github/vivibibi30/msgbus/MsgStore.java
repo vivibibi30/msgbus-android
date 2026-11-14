@@ -61,11 +61,11 @@ public final class MsgStore implements Store {
     }
 
     @Override
-    public void post(String text) throws IOException {
+    public void post(String text, String attachments) throws IOException {
         String[] rb = Store.splitRefs(text);
         if (rb[1].isEmpty()) throw new IOException("refs 之外没有正文");
         File tmp = new File(ctx.getCacheDir(), "post.txt");
-        writeFile(tmp, Store.messageText(rb[0], rb[1]));
+        writeFile(tmp, Store.messageText(rb[0], rb[1], attachments));
         String name = Store.fileName();
         String r = sh("mkdir -p " + q(spool())
                 + " && cp " + q(tmp.getAbsolutePath()) + " " + q(spool() + "/" + name)
