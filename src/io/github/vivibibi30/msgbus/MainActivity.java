@@ -1046,6 +1046,11 @@ public class MainActivity extends Activity {
     }
 
     private void confirmDeleteMember(final String name) {
+        if (Store.ME.equals(name)) {
+            Toast.makeText(this, "「" + Store.ME + "」是 App 自己的身份，不能删；要停用请改成 left",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
         new AlertDialog.Builder(this)
                 .setTitle("删除成员记录？")
                 .setMessage("只删 members/" + name + " 这条名单记录；它发过的消息仍然保留在群里。")
@@ -1079,7 +1084,7 @@ public class MainActivity extends Activity {
                 try {
                     for (String ln : store.members().split("\n")) {
                         String[] p = ln.trim().split("\\s+");
-                        if (p.length >= 2 && "left".equals(p[1])) {
+                        if (p.length >= 2 && "left".equals(p[1]) && !Store.ME.equals(p[0])) {
                             store.deleteMember(p[0]);
                             removed++;
                         }
