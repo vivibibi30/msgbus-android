@@ -1004,8 +1004,8 @@ public class MainActivity extends Activity {
     private void menu() {
         final String notifyLabel = prefs.getBoolean("notify_on", false) ? "关闭后台提醒" : "开启后台提醒";
         // 生成 / 添加 / 刷新 已提到顶栏，这里不再重复
-        final String[] items = {"上手说明", "聊天记录（归档）", notifyLabel, "成员管理",
-                "通知档位", "消息目录", "写一条示例消息", "清理数据"};
+        final String[] items = {"上手说明", "聊天记录（归档）", notifyLabel, "复制『看群』提醒",
+                "成员管理", "通知档位", "消息目录", "写一条示例消息", "清理数据"};
         new AlertDialog.Builder(this)
                 .setTitle("会话群")
                 .setItems(items, new DialogInterface.OnClickListener() {
@@ -1015,11 +1015,12 @@ public class MainActivity extends Activity {
                             case 0: onboarding(); break;
                             case 1: archiveDialog(); break;
                             case 2: toggleNotify(); break;
-                            case 3: membersDialog(); break;
-                            case 4: notifyLevel(); break;
-                            case 5: dirDialog(); break;
-                            case 6: sampleMessage(); break;
-                            case 7: clearDialog(); break;
+                            case 3: remindDialog(); break;
+                            case 4: membersDialog(); break;
+                            case 5: notifyLevel(); break;
+                            case 6: dirDialog(); break;
+                            case 7: sampleMessage(); break;
+                            case 8: clearDialog(); break;
                             default: load(); break;
                         }
                     }
@@ -1048,6 +1049,62 @@ public class MainActivity extends Activity {
                 });
             }
         }).start();
+    }
+
+    /** 复制一句「看群」，粘给某个会话即可（含它自己的 new 命令）。 */
+    private void remindDialog() {
+        if (store == null) {
+            Toast.makeText(this, "还没有存储通道", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String text;
+                try {
+                    text = store.members();
+                } catch (Exception e) {
+                    text = "";
+                }
+                final List<String> names = new ArrayList<String>();
+                for (String ln : text.split("\n")) {
+                    String[] p = ln.trim().split("\\s+");
+                    if (p.length >= 2 && !"left".equals(p[1]) && !Store.ME.equals(p[0])) names.add(p[0]);
+                }
+                ui.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (names.isEmpty()) {
+                            Toast.makeText(MainActivity.this, "群里还没有别的会话", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("复制「看群」提醒给：")
+                                .setItems(names.toArray(new String[0]), new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface d, int which) {
+                                        String n = names.get(which);
+                                        copy(remindText(n));
+                                        Toast.makeText(MainActivity.this,
+                                                "已复制，粘给 " + n + " 即可", Toast.LENGTH_SHORT).show();
+                                    }
+                                })
+                                .setNegativeButton("不用", null)
+                                .show();
+                    }
+                });
+            }
+        }).start();
+    }
+
+    /** 一句话：带上它自己的 new 命令；找不到脚本时退化成 brief 提示。 */
+    private String remindText(String name) {
+        String dir = Stores.rootDir(prefs);
+        String script = findMsgSh();
+        if (script == null) {
+            return "看群：先跑 sh msg.sh brief " + name + " 拿到读取命令（消息目录 " + dir + "）";
+        }
+        return "看群：MSGBUS_DIR=" + dir + " sh " + script + " new " + name;
     }
 
     private void showMembersList(String text) {
@@ -1676,6 +1733,7 @@ public class MainActivity extends Activity {
                 input.setHint("发消息…（首行 refs: 可挂引用）");
                 advancedThisRound = true;
                 load();
+                remindDialog();
             }
         });
     }
