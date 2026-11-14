@@ -98,6 +98,13 @@ public class ParserTest {
         check("扩展字段之后 subject 仍解析", "自我介绍", im.get(0).subject);
         check("扩展字段之后 time 仍解析", "2026-11-13T19:37:12+0000", im.get(0).time);
 
+        // 附件字段：不进正文，单独解析
+        String attMsg = "@@@a1.msg\nfrom: yg-x\nscope: group\nrefs: -\n"
+                + "attachments: /sdcard/a.png,/sdcard/b.png\ntime: 2026-11-14T01:00:00+0000\n\n看这两张图";
+        java.util.List<Msg> am = MessageParser.parse(attMsg);
+        check("附件路径", "/sdcard/a.png,/sdcard/b.png", am.get(0).attachments);
+        check("附件不进正文", "看这两张图", am.get(0).body);
+
         // Store 的共用拼装（两个通道必须产出同一格式，spec §3）
         String[] rb = io.github.vivibibi30.msgbus.Store.splitRefs("refs: 6e996a5\n正文一行");
         check("splitRefs refs", "6e996a5", rb[0]);

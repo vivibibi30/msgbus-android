@@ -10,10 +10,11 @@ public final class Msg {
     public final String subject;
     public final String covers;   // 非空 = 摘要消息，值为被压缩条数
     public final String scope;    // group / digest / direct
+    public final String attachments; // 逗号分隔的图片/文件路径，可空
     public final String body;
 
     public Msg(String file, String from, String time, String refs,
-               String subject, String covers, String scope, String body) {
+               String subject, String covers, String scope, String attachments, String body) {
         this.file = file;
         this.from = from == null ? "" : from;
         this.time = time == null ? "" : time;
@@ -21,6 +22,7 @@ public final class Msg {
         this.subject = subject == null ? "" : subject;
         this.covers = covers == null ? "" : covers;
         this.scope = scope == null || scope.isEmpty() ? "group" : scope;
+        this.attachments = attachments == null ? "" : attachments;
         this.body = body == null ? "" : body;
     }
 

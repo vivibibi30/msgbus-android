@@ -17,16 +17,17 @@ public final class MessageParser {
         if (raw == null) return out;
         String[] lines = raw.split("\n", -1);
         String file = null;
-        String from = "", time = "", refs = "", subject = "", covers = "", scope = "group";
+        String from = "", time = "", refs = "", subject = "", covers = "", scope = "group", att = "";
         StringBuilder body = null;
         boolean inBody = false;
 
         for (String ln : lines) {
             if (ln.startsWith("@@@")) {
-                if (file != null) out.add(new Msg(file, from, time, refs, subject, covers, scope, trim(body)));
+                if (file != null) out.add(new Msg(file, from, time, refs, subject, covers, scope, att, trim(body)));
                 file = ln.substring(3);
                 from = time = refs = subject = covers = "";
                 scope = "group";
+                att = "";
                 body = new StringBuilder();
                 inBody = false;
                 continue;
@@ -52,6 +53,7 @@ public final class MessageParser {
                 else if (ln.startsWith("subject: ")) subject = ln.substring(9).trim();
                 else if (ln.startsWith("covers: ")) covers = ln.substring(8).trim();
                 else if (ln.startsWith("scope: ")) scope = ln.substring(7).trim();
+                else if (ln.startsWith("attachments: ")) att = ln.substring(13).trim();
                 else {
                     // to:/upto:/kind:/re:/x-* 等：按 SPEC §0.2 忽略，但不算正文开始
                 }
@@ -59,7 +61,7 @@ public final class MessageParser {
                 body.append(ln).append('\n');
             }
         }
-        if (file != null) out.add(new Msg(file, from, time, refs, subject, covers, scope, trim(body)));
+        if (file != null) out.add(new Msg(file, from, time, refs, subject, covers, scope, att, trim(body)));
         return out;
     }
 

@@ -524,6 +524,23 @@ public class MainActivity extends Activity {
         body.setTextIsSelectable(true);
         bubble.addView(body);
 
+        if (!m.attachments.isEmpty()) {
+            TextView att = new TextView(this);
+            att.setText("📎 " + m.attachments.replace(",", "\n📎 "));
+            att.setTextColor(me ? (night ? 0xFFBFD4F5 : 0xE6FFFFFF) : 0xFF8FB4E8);
+            att.setTextSize(10.5f);
+            att.setTypeface(Typeface.MONOSPACE);
+            att.setMaxWidth(maxBubble);
+            att.setPadding(0, dp(4), 0, 0);
+            att.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    copy(m.attachments);
+                }
+            });
+            bubble.addView(att);
+        }
+
         if (!m.refs.isEmpty() && !m.refs.equals("-")) {
             TextView refs = new TextView(this);
             refs.setText("↪ " + m.refs);
