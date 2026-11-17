@@ -956,11 +956,23 @@ public class MainActivity extends Activity {
                 "/sdcard/msgbus/msg.sh"};
         for (String c : cands) {
             try {
-                if (MsgStore.sh("[ -f " + MsgStore.quote(c) + " ] && echo Y").trim().equals("Y")) return c;
+                if (MsgStore.sh("[ -f " + MsgStore.quote(c) + " ] && echo Y").trim().equals("Y")) {
+                    return canonical(c);   // 去掉 ../..，别把折行路径塞进命令里
+                }
             } catch (Exception ignored) {
             }
         }
         return null;
+    }
+
+    /** readlink -f 可用就用它；不可用就退回原路径（不阻断生成）。 */
+    private String canonical(String file) {
+        try {
+            String r = MsgStore.sh("readlink -f " + MsgStore.quote(file) + " 2>/dev/null").trim();
+            if (!r.isEmpty()) return r;
+        } catch (Exception ignored) {
+        }
+        return file;
     }
 
     private void showCommand(final String cmd) {
