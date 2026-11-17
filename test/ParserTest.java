@@ -105,6 +105,13 @@ public class ParserTest {
         check("附件路径", "/sdcard/a.png,/sdcard/b.png", am.get(0).attachments);
         check("附件不进正文", "看这两张图", am.get(0).body);
 
+        // 时间显示：协议统一 UTC，但同一瞬间不管写 +0800 还是 +0000，本地显示必须一致
+        check("时区换算一致", io.github.vivibibi30.msgbus.TimeFmt.display("2026-11-18T04:18:20+0800"),
+                io.github.vivibibi30.msgbus.TimeFmt.display("2026-11-17T20:18:20+0000"));
+        check("坏时间不崩", "x", io.github.vivibibi30.msgbus.TimeFmt.display("x"));
+        check("day 也按本地", io.github.vivibibi30.msgbus.TimeFmt.day("2026-11-18T04:18:20+0800"),
+                io.github.vivibibi30.msgbus.TimeFmt.day("2026-11-17T20:18:20+0000"));
+
         // Store 的共用拼装（两个通道必须产出同一格式，spec §3）
         String[] rb = io.github.vivibibi30.msgbus.Store.splitRefs("refs: 6e996a5\n正文一行");
         check("splitRefs refs", "6e996a5", rb[0]);

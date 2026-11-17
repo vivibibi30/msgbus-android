@@ -418,7 +418,7 @@ public class MainActivity extends Activity {
         boolean dividerDrawn = false;
         String lastDay = "";
         for (Msg m : msgs) {
-            String day = m.time.length() >= 10 ? m.time.substring(0, 10) : "";
+            String day = TimeFmt.day(m.time);
             if (!day.isEmpty() && !day.equals(lastDay)) {
                 feed.addView(chip(day, 10));
                 lastDay = day;
@@ -704,7 +704,7 @@ public class MainActivity extends Activity {
     }
 
     private String hhmm(String iso) {
-        return iso.length() >= 16 ? iso.substring(11, 16) : iso;
+        return TimeFmt.clock(iso);
     }
 
     private int dp(int v) {
@@ -1538,8 +1538,7 @@ public class MainActivity extends Activity {
                         StringBuilder sb = new StringBuilder();
                         for (int i = 0; i < old.size(); i++) {
                             Msg m = old.get(i);
-                            sb.append(i + 1).append(". ").append(m.time.length() >= 16
-                                    ? m.time.substring(0, 16).replace('T', ' ') : m.time)
+                            sb.append(i + 1).append(". ").append(TimeFmt.display(m.time))
                               .append("  ").append(m.from).append("\n")
                               .append(m.body).append("\\n\\n");
                         }
