@@ -112,6 +112,17 @@ public class ParserTest {
         check("day 也按本地", io.github.vivibibi30.msgbus.TimeFmt.day("2026-11-18T04:18:20+0800"),
                 io.github.vivibibi30.msgbus.TimeFmt.day("2026-11-17T20:18:20+0000"));
 
+        // members 解析：名字含空格时必须完整保留（TAB 与旧空格格式都要支持）
+        java.util.List<String[]> m1 = io.github.vivibibi30.msgbus.Members.parse(
+                "ssc 编码器\tactive\t2026-11-18T05:16:25\tapp 添加\n机主\tactive\t2026-11-18T05:26:03\t-");
+        check("members TAB 名字含空格", "ssc 编码器", m1.get(0)[0]);
+        check("members TAB 状态", "active", m1.get(0)[1]);
+        check("members TAB 条数", "2", "" + m1.size());
+        java.util.List<String[]> m2 = io.github.vivibibi30.msgbus.Members.parse(
+                "ssc 编码器      active 2026-11-18T05:16:25  app 添加");
+        check("members 旧空格格式名字", "ssc 编码器", m2.get(0)[0]);
+        check("members 旧空格格式状态", "active", m2.get(0)[1]);
+
         // Store 的共用拼装（两个通道必须产出同一格式，spec §3）
         String[] rb = io.github.vivibibi30.msgbus.Store.splitRefs("refs: 6e996a5\n正文一行");
         check("splitRefs refs", "6e996a5", rb[0]);

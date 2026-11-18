@@ -120,7 +120,7 @@ public final class MsgStore implements Store {
     public String members() throws IOException {
         String r = sh("cd " + q(dir + "/members") + " 2>/dev/null || exit 0; "
                 + "for f in *; do [ -f \"$f\" ] || continue; "
-                + "printf '%-14s %-6s %s %s\\n' \"$f\" "
+                + "printf '%s\\t%s\\t%s\\t%s\\n' \"$f\" "
                 + "\"$(sed -n 's/^status: //p' \"$f\" | head -1)\" "
                 + "\"$(sed -n 's/^updated: //p' \"$f\" | head -1 | cut -c1-16)\" "
                 + "\"$(sed -n 's/^note: //p' \"$f\" | head -1)\"; done");

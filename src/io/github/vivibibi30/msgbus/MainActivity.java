@@ -1122,18 +1122,14 @@ public class MainActivity extends Activity {
     private void showMembersList(String text) {
         final List<String> names = new ArrayList<String>();
         List<String> lines = new ArrayList<String>();
-        for (String ln : text.split("\n")) {
-            if (ln.trim().isEmpty()) continue;
-            String[] f = ln.split("\t", -1);   // 名字可含空格，字段用 TAB 分隔
-            String name = f.length > 0 ? f[0] : "";
+        for (String[] f : Members.parse(text)) {
+            String name = f[0];
             if (name.isEmpty()) continue;
             names.add(name);
             String shown = name.equals(name.trim()) ? name
-                    : "「" + name.replace(" ", "␣").replace("\t", "→") + "」";
+                    : "「" + name.replace(" ", "␣") + "」";
             StringBuilder show = new StringBuilder(shown);
-            for (int i = 1; i < f.length; i++) {
-                if (!f[i].isEmpty()) show.append("  ").append(f[i]);
-            }
+            for (int i = 1; i < f.length; i++) if (!f[i].isEmpty()) show.append("  ").append(f[i]);
             lines.add(show.toString());
         }
         lines.add(0, "＋ 添加会话");
@@ -1196,9 +1192,8 @@ public class MainActivity extends Activity {
                 int removed = 0;
                 String err = null;
                 try {
-                    for (String ln : store.members().split("\n")) {
-                        String[] p = ln.split("\t", -1);
-                        if (p.length >= 2 && "left".equals(p[1]) && !Store.ME.equals(p[0])) {
+                    for (String[] p : Members.parse(store.members())) {
+                        if ("left".equals(p[1]) && !Store.ME.equals(p[0])) {
                             store.deleteMember(p[0]);
                             removed++;
                         }
