@@ -73,7 +73,8 @@ public final class SafStore implements Store {
             String updated = Store.header(t, "updated");
             String note = Store.header(t, "note");
             if (updated.length() > 16) updated = updated.substring(0, 16);
-            sb.append(String.format("%-14s %-6s %s %s\n", f[1], status, updated, note));
+            sb.append(f[1]).append('\t').append(status).append('\t')
+              .append(updated).append('\t').append(note).append('\n');
         }
         return sb.toString().trim();
     }

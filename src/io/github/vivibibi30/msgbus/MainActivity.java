@@ -1124,8 +1124,15 @@ public class MainActivity extends Activity {
         List<String> lines = new ArrayList<String>();
         for (String ln : text.split("\n")) {
             if (ln.trim().isEmpty()) continue;
-            names.add(ln.trim().split("\\s+")[0]);
-            lines.add(ln.trim());
+            String[] f = ln.split("\t", -1);   // 名字可含空格，字段用 TAB 分隔
+            String name = f.length > 0 ? f[0] : "";
+            if (name.isEmpty()) continue;
+            names.add(name);
+            StringBuilder show = new StringBuilder(name);
+            for (int i = 1; i < f.length; i++) {
+                if (!f[i].isEmpty()) show.append("  ").append(f[i]);
+            }
+            lines.add(show.toString());
         }
         lines.add(0, "＋ 添加会话");
         new AlertDialog.Builder(this)
@@ -1169,6 +1176,7 @@ public class MainActivity extends Activity {
                             @Override
                             public void run() {
                                 load();
+                                membersDialog();   // 删完留在成员列表，不回主界面
                             }
                         });
                     }
@@ -1185,7 +1193,7 @@ public class MainActivity extends Activity {
                 String err = null;
                 try {
                     for (String ln : store.members().split("\n")) {
-                        String[] p = ln.trim().split("\\s+");
+                        String[] p = ln.split("\t", -1);
                         if (p.length >= 2 && "left".equals(p[1]) && !Store.ME.equals(p[0])) {
                             store.deleteMember(p[0]);
                             removed++;
@@ -1203,6 +1211,7 @@ public class MainActivity extends Activity {
                                 e2 != null ? "清理失败：" + e2 : "已清理 " + n + " 条 left 记录",
                                 Toast.LENGTH_SHORT).show();
                         load();
+                        membersDialog();
                     }
                 });
             }
@@ -1237,6 +1246,7 @@ public class MainActivity extends Activity {
                             @Override
                             public void run() {
                                 load();
+                                membersDialog();   // 切完回列表
                             }
                         });
                     }
