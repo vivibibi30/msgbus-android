@@ -137,8 +137,9 @@ public final class SafStore implements Store {
     public void deleteMember(String name) throws IOException {
         String dir = findChild(rootDoc, "members");
         if (dir == null) return;
-        String safe = name.replace("/", "_").replace("\\", "_").trim();
-        String doc = findChild(dir, safe);
+        String exact = name.replace("/", "_").replace("\\", "_");
+        String doc = findChild(dir, exact);
+        if (doc == null) doc = findChild(dir, exact.trim());
         if (doc != null) delete(doc);
     }
 

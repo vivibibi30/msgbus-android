@@ -1128,7 +1128,9 @@ public class MainActivity extends Activity {
             String name = f.length > 0 ? f[0] : "";
             if (name.isEmpty()) continue;
             names.add(name);
-            StringBuilder show = new StringBuilder(name);
+            String shown = name.equals(name.trim()) ? name
+                    : "「" + name.replace(" ", "␣").replace("\t", "→") + "」";
+            StringBuilder show = new StringBuilder(shown);
             for (int i = 1; i < f.length; i++) {
                 if (!f[i].isEmpty()) show.append("  ").append(f[i]);
             }
@@ -1175,6 +1177,8 @@ public class MainActivity extends Activity {
                         }, new Runnable() {
                             @Override
                             public void run() {
+                                Toast.makeText(MainActivity.this,
+                                        "已删除记录：" + name, Toast.LENGTH_SHORT).show();
                                 load();
                                 membersDialog();   // 删完留在成员列表，不回主界面
                             }

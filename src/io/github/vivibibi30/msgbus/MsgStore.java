@@ -141,9 +141,14 @@ public final class MsgStore implements Store {
 
     @Override
     public void deleteMember(String name) throws IOException {
-        String safe = safeName(name);
-        if (safe.isEmpty()) throw new IOException("会话名为空");
-        sh("rm -f " + q(dir + "/members/" + safe));
+        // 不改名字：成员文件名可能就是 "？ " 这种带空白的，trim 过就删不到
+        String exact = name.replace("/", "_").replace("\\", "_");
+        String trimmed = exact.trim();
+        if (trimmed.isEmpty()) throw new IOException("会话名为空");
+        String base = dir + "/members/";
+        sh("rm -f " + q(base + exact) + " ; rm -f " + q(base + trimmed));
+        String left = sh("[ -e " + q(base + exact) + " ] && echo yes").trim();
+        if (left.equals("yes")) throw new IOException("删除失败：文件仍存在 " + base + exact);
     }
 
     @Override
